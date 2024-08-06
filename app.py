@@ -37,8 +37,11 @@ def get_args():
 
     return args
 
-
 def main():
+    global PAUSE_MODE
+    CURRENT_RIGHT = ""
+    CURRENT_LEFT = ""
+    PAUSE_MODE = False
     # Argument parsing #################################################################
     args = get_args()
 
@@ -61,7 +64,7 @@ def main():
     mp_hands = mp.solutions.hands
     hands = mp_hands.Hands(
         static_image_mode=use_static_image_mode,
-        max_num_hands=1,
+        max_num_hands=2,
         min_detection_confidence=min_detection_confidence,
         min_tracking_confidence=min_tracking_confidence,
     )
@@ -161,6 +164,17 @@ def main():
                 # Drawing part
                 debug_image = draw_bounding_rect(use_brect, debug_image, brect)
                 debug_image = draw_landmarks(debug_image, landmark_list)
+                sign = keypoint_classifier_labels[hand_sign_id]
+                hand_side = handedness.classification[0].label[0:]
+
+                if hand_side == "Right":
+                    CURRENT_RIGHT = sign
+
+                if hand_side == "Left":
+                    CURRENT_LEFT = sign
+
+                process_sides(CURRENT_LEFT, CURRENT_RIGHT)
+
                 debug_image = draw_info_text(
                     debug_image,
                     brect,
@@ -179,6 +193,21 @@ def main():
 
     cap.release()
     cv.destroyAllWindows()
+
+
+def process_sides(left, right):
+    global PAUSE_MODE
+
+    if left != "Close":
+        return
+
+    if right == "Close" and PAUSE_MODE is False:
+        PAUSE_MODE = True
+        print("PlayPause")
+
+    if right != "Close":
+        PAUSE_MODE = False
+
 
 
 def select_mode(key, mode):
@@ -483,6 +512,7 @@ def draw_landmarks(image, landmark_point):
 
 
 def draw_bounding_rect(use_brect, image, brect):
+    return image
     if use_brect:
         # Outer rectangle
         cv.rectangle(image, (brect[0], brect[1]), (brect[2], brect[3]),
